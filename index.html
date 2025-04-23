@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Mileage Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .vehicle-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .vehicle-section h2 {
+            margin-top: 0;
+            color: #444;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+        input[type="number"], input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .results {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        .history {
+            margin-top: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vehicle Mileage Tracker</h1>
+
+        <!-- Ritz Car Section -->
+        <div class="vehicle-section">
+            <h2>Ritz Car</h2>
+            <label for="ritz-km">Kilometer Reading:</label>
+            <input type="number" id="ritz-km" step="0.1" min="0" required>
+            <label for="ritz-fuel">Fuel Filled (Litres):</label>
+            <input type="number" id="ritz-fuel" step="0.1" min="0" required>
+            <button onclick="submitData('ritz')">Submit</button>
+            <div id="ritz-results" class="results"></div>
+            <div id="ritz-history" class="history"></div>
+        </div>
+
+        <!-- Jupiter Bike Section -->
+        <div class="vehicle-section">
+            <h2>Jupiter Bike</h2>
+            <label for="jupiter-km">Kilometer Reading:</label>
+            <input type="number" id="jupiter-km" step="0.1" min="0" required>
+            <label for="jupiter-fuel">Fuel Filled (Litres):</label>
+            <input type="number" id="jupiter-fuel" step="0.1" min="0" required>
+            <button onclick="submitData('jupiter')">Submit</button>
+            <div id="jupiter-results" class="results"></div>
+            <div id="jupiter-history" class="history"></div>
+        </div>
+
+        <!-- Duro Bike Section -->
+        <div class="vehicle-section">
+            <h2>Duro Bike</h2>
+            <label for="duro-km">Kilometer Reading:</label>
+            <input type="number" id="duro-km" step="0.1" min="0" required>
+            <label for="duro-fuel">Fuel Filled (Litres):</label>
+            <input type="number" id="duro-fuel" step="0.1" min="0" required>
+            <button onclick="submitData('duro')">Submit</button>
+            <div id="duro-results" class="results"></div>
+            <div id="duro-history" class="history"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize localStorage if not already set
+        function initializeStorage() {
+            const vehicles = ['ritz', 'jupiter', 'duro'];
+            vehicles.forEach(vehicle => {
+                if (!localStorage.getItem(`${vehicle}Data`)) {
+                    localStorage.setItem(`${vehicle}Data`, JSON.stringify([]));
+                }
+                displayHistory(vehicle);
+            });
+        }
+
+        // Submit data for a vehicle
+        function submitData(vehicle) {
+            const kmInput = document.getElementById(`${vehicle}-km`);
+            const fuelInput = document.getElementById(`${vehicle}-fuel`);
+            const resultsDiv = document.getElementById(`${vehicle}-results`);
+
+            const km = parseFloat(kmInput.value);
+            const fuel = parseFloat(fuelInput.value);
+            const date = new Date().toISOString().split('T')[0];
+
+            if (isNaN(km) || isNaN(fuel) || km < 0 || fuel <= 0) {
+                resultsDiv.innerHTML = 'Please enter valid kilometer and fuel values.';
+                return;
+            }
+
+            let data = JSON.parse(localStorage.getItem(`${vehicle}Data`)) || [];
+            let mileage = null;
+            let daysDiff = null;
+
+            if (data.length > 0) {
+                const prevEntry = data[data.length - 1];
+                const kmDiff = km - prevEntry.km;
+                if (kmDiff <= 0) {
+                    resultsDiv.innerHTML = 'Current kilometer reading must be greater than previous reading.';
+                    return;
+                }
+                mileage = (kmDiff / prevEntry.fuel).toFixed(2);
+                const prevDate = new Date(prevEntry.date);
+                const currDate = new Date(date);
+                daysDiff = Math.round((currDate - prevDate) / (1000 * 60 * 60 * 24));
+            }
+
+            const entry = { km, fuel, date, mileage, daysDiff };
+            data.push(entry);
+            localStorage.setItem(`${vehicle}Data`, JSON.stringify(data));
+
+            resultsDiv.innerHTML = `
+                <p><strong>Latest Entry:</strong></p>
+                <p>Kilometer Reading: ${km} km</p>
+                <p>Fuel Filled: ${fuel} L</p>
+                <p>Date: ${date}</p>
+                ${mileage ? `<p>Mileage: ${mileage} km/L</p>` : ''}
+                ${daysDiff ? `<p>Days Since Last Entry: ${daysDiff} days</p>` : ''}
+            `;
+
+            displayHistory(vehicle);
+            kmInput.value = '';
+            fuelInput.value = '';
+        }
+
+        // Display history for a vehicle
+        function displayHistory(vehicle) {
+            const historyDiv = document.getElementById(`${vehicle}-history`);
+            const data = JSON.parse(localStorage.getItem(`${vehicle}Data`)) || [];
+
+            if (data.length === 0) {
+                historyDiv.innerHTML = '<p>No history available.</p>';
+                return;
+            }
+
+            let table = `
+                <h3>History</h3>
+                <table>
+                    <tr>
+                        <th>Date</th>
+                        <th>Kilometer</th>
+                        <th>Fuel (L)</th>
+                        <th>Mileage (km/L)</th>
+                        <th>Days Since Last</th>
+                    </tr>
+            `;
+            data.forEach(entry => {
+                table += `
+                    <tr>
+                        <td>${entry.date}</td>
+                        <td>${entry.km}</td>
+                        <td>${entry.fuel}</td>
+                        <td>${entry.mileage || '-'}</td>
+                        <td>${entry.daysDiff !== null ? entry.daysDiff : '-'}</td>
+                    </tr>
+                `;
+            });
+            table += '</table>';
+            historyDiv.innerHTML = table;
+        }
+
+        // Initialize on page load
+        window.onload = initializeStorage;
+    </script>
+</body>
+</html>
